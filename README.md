@@ -1,365 +1,54 @@
-<div align="center">
-  <picture>
-      <img src="figures/logo-border-169.svg" width="30%" alt="Alpie-Core: Efficient Reasoning Intelligence">
-  </picture>
-</div>
+# Alpie-Core × Team Transformer
 
-
-<hr>
-
-<p align="center">
-  <a href="https://169pi.ai/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/🌐%20Website-169Pi%20AI-blue" alt="Website"></a>
-  <a href="https://huggingface.co/169Pi" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/🤗%20Hugging%20Face-169Pi%20AI-yellow" alt="Hugging Face"></a>
-  <a href="https://www.linkedin.com/company/169pi/" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/LinkedIn-169Pi%20AI-blue" alt="LinkedIn"></a>
-  <a href="https://x.com/169Pi_ai" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/X-169Pi%20AI-black" alt="X"></a>
-  <a href="docs/Alpie_Core.pdf" target="_blank" rel="noopener noreferrer"><img src="https://img.shields.io/badge/📄%20Technical%20Report-Alpie%20Core-green" alt="Technical Report"></a>
-</p>
-
-## 1. Model Introduction
-
-We introduce Alpie-Core, our first-generation reasoning model. It is a 32B-parameter system built on the DeepSeek-32B family and fine-tuned in 4-bit precision. By using quantization techniques like QLoRA, combined with parameter-efficient fine-tuning methods such as LoRA, and leveraging synthetic dataset distillation, Alpie-Core achieves high efficiency in reasoning, mathematics, and coding tasks. It operates with significantly lower computational and memory costs. Even with strong quantization, the model consistently outperforms 16-bit and 32-bit baselines. It achieves results such as 81.28% on MMLU, 92.75% on GSM8K, and 57.8% on SWE-Bench Verified. Notably, Alpie-Core can be trained using just 8 NVIDIA Hopper GPUs, requiring only 25% of the memory used by full-precision models. This repository covers the model's architecture, quantization strategy, training methods, benchmark results, technical innovations, use cases, safety and alignment features, limitations, and roadmap.
-
-### Key Features
-- **4-bit Quantization**: NF4 quantization with double quantization for strong compression.
-- **Parameter-Efficient Training**: LoRA/QLoRA techniques allow fine-tuning with low resource needs.
-- **Extended Context**: 65K token context length for managing large inputs and conversations.
-- **Streaming Support**: Real-time, token-level response generation.
-- **Resource Optimized**: Needs only about 16GB VRAM for deployment on standard hardware.
-
-### Model Highlights
-- **First 4-bit reasoning model from India** and one of the first globally at a 32B scale.
-- **Trained on just 8 NVIDIA Hopper GPUs** showing efficient training methods.
-- **Carbon footprint**: Just 298-835 kg CO₂e, much lower than full-precision options.
-- **Improved content access**: Offers balanced responses to geopolitically sensitive topics.
-
-<div align="center">
-  <picture>
-      <img src="figures/combined_benchmark.png" width="920" height="320">
-  </picture>
-</div>
-
-## 2. Model Summary
-
-
-<div align="center">
-
-<table>
-  <tr>
-    <td><b>Base Architecture</b></td>
-    <td>DeepSeek-R1-Distill-Qwen-32B</td>
-  </tr>
-  <tr>
-    <td><b>Total Parameters</b></td>
-    <td>32B</td>
-  </tr>
-  <tr>
-    <td><b>Quantization</b></td>
-    <td>4-bit NF4 with double quantization</td>
-  </tr>
-  <tr>
-    <td><b>Training Method</b></td>
-    <td>LoRA/QLoRA fine-tuning</td>
-  </tr>
-  <tr>
-    <td><b>Memory Footprint</b></td>
-    <td>~16GB (75% reduction vs FP16)</td>
-  </tr>
-  <tr>
-    <td><b>Context Length</b></td>
-    <td>65K tokens</td>
-  </tr>
-  <tr>
-    <td><b>Max Output Length</b></td>
-    <td>16,384 tokens</td>
-  </tr>
-  <tr>
-    <td><b>Training Hardware</b></td>
-    <td>8× NVIDIA Hopper GPUs</td>
-  </tr>
-  <tr>
-    <td><b>License</b></td>
-    <td>Apache 2.0</td>
-  </tr>
-  <tr>
-    <td><b>Specialization</b></td>
-    <td>Reasoning, Mathematics, Coding, Science</td>
-  </tr>
-</table>
-
-</div>
-
-
-## 3. Evaluation Results
-### SWE-Bench Verified Performance
-
-<div align="center">
-  <picture>
-    <img src="figures/swe.png" width="70%" alt="SWE-Bench Verified - Accuracy Comparison">
-  </picture>
-</div>
-
-### Humanity's Last Exam Leaderboard Performance
-<div align="center">
-  <picture>
-    <img src="figures/HLE.png" width="95%" alt="Humanity's Last Exam - Accuracy Comparison">
-  </picture>
-</div>
-
-
-### AIME (Advanced Mathematics)
-<div align="center">
-  <picture>
-    <img src="figures/AIME.png" width="47%" alt="AIME - Advanced Mathematics Performance">
-  </picture>
-</div>
-
-
-### BBH (Big-Bench Hard)
-<div align="center">
-  <picture>
-    <img src="figures/BBH.png" width="60%" alt="BBH - Big-Bench Hard Performance">
-  </picture>
-</div>
-
-### GSM8K (Grade School Math)
-<div align="center">
-  <picture>
-    <img src="figures/GSM8K (1).png" width="60%" alt="GSM8K - Grade School Math Performance">
-  </picture>
-</div>
-
-
-
-## 4. Deployment
-
-Our model checkpoints are stored in 4-bit quantized format, you can find it on [Hugging Face](https://huggingface.co/169Pi/Alpie-Core).
-
-Currently, it is recommended to run Alpie-Core on the following inference engines:
-* vLLM
-
-Deployment examples for vLLM can be found in this [Model Deployment Guide](docs/deploy_guidance.md).
-
-
----
-## 5. Model Usage
-
-#### Non-Streaming Inference
-
-```python
-from transformers import AutoModelForCausalLM, AutoTokenizer
-from peft import PeftModel, PeftConfig
-import torch
-
-# Load LoRA adapter configuration to find the base model
-peft_model_id = "169Pi/Alpie-Core"
-config = PeftConfig.from_pretrained(peft_model_id)
-
-# Load the base model
-base_model = AutoModelForCausalLM.from_pretrained(
-    config.base_model_name_or_path,
-    torch_dtype=torch.float16,
-    device_map="auto"
-)
-
-# Load tokenizer
-tokenizer = AutoTokenizer.from_pretrained(config.base_model_name_or_path)
-
-# Load LoRA weights
-model = PeftModel.from_pretrained(base_model, peft_model_id)
-
-# Ensure evaluation mode
-model.eval()
-
-# Sample inference
-prompt = "Solve the Riemann Hypothesis and provide a final answer?"
-inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-
-with torch.no_grad():
-    outputs = model.generate(**inputs, max_new_tokens=1000)
-    response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-print("Response:\n", response)
-```
-
-
-#### Streaming Inference
-```python
-
-from transformers import AutoModelForCausalLM, AutoTokenizer, TextStreamer
-from peft import PeftModel, PeftConfig
-import torch
-
-# Load LoRA adapter configuration to find the base model
-peft_model_id = "169Pi/Alpie-Core"
-config = PeftConfig.from_pretrained(peft_model_id)
-
-# Load the base model
-base_model = AutoModelForCausalLM.from_pretrained(
-    config.base_model_name_or_path,
-    torch_dtype=torch.float16,
-    device_map="auto"
-)
-
-# Load tokenizer
-tokenizer = AutoTokenizer.from_pretrained(config.base_model_name_or_path)
-
-# Load LoRA weights
-model = PeftModel.from_pretrained(base_model, peft_model_id)
-
-# Ensure evaluation mode
-model.eval()
-
-# Initialize streamer
-streamer = TextStreamer(tokenizer, skip_prompt=True, skip_special_tokens=True)
-
-# Sample streaming inference
-prompt = "Solve the Riemann Hypothesis and provide a final answer?"
-inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-
-print("Streaming Response:")
-with torch.no_grad():
-    outputs = model.generate(
-        **inputs,
-        max_new_tokens=1000,
-        streamer=streamer,
-        do_sample=True,
-        temperature=0.7,
-        top_p=0.9
-    )
-
-```
----
-## 6. License
-
-[Apache 2.0 License](LICENSE) – Permissive, allowing free use, modification, and distribution for both research and commercial purposes.
+**Forked for community contribution during Preptember / Hacktoberfest 2026**
 
 ---
 
-## 7. Citation
-```
+## 🧠 About Alpie-Core
 
-@misc{169pi2025alpiecore,
-  title     = {Alpie-Core: A 4-Bit Quantized Reasoning Model from India that Outperforms Full-Precision Models},
-  author    = {169Pi AI},
-  year      = {2025},
-  url       = {https://huggingface.co/169Pi/Alpie-Core}
-}
+Alpie-Core is India’s first 4-bit quantized reasoning model — designed to deliver strong multi-step reasoning and coding performance while running efficiently on consumer hardware.
 
-```
----
-## 8. Acknowledgements / Credits
-
-We want to thank DeepSeek for their original model, which was the basis for this work. Our team fine tuned the model and used 4-bit quantization. This resulted in better efficiency and accuracy for our tasks. This model respects the contributions of the original authors and aims to provide a safe, high-performance solution for reasoning and inference.
-
-We also appreciate the Hugging Face ecosystem (Transformers, PEFT, vLLM, bitsandbytes), the open-source community datasets (MMLU, GSM8K, SWE-Bench, and others), and the help from various cloud providers. Finally, we recognize the broader AI research community and companies whose innovations and insights keep inspiring our work.
+This fork exists as part of **Team Transformer**’s contribution to the 169Pi ecosystem.
 
 ---
 
-## 9. Contributing
+## 🚀 Our Project: Quorum
 
-We welcome contributions from the community! Whether you're fixing bugs, improving documentation, adding new features, or sharing insights, your contributions help make Alpie-Core better for everyone.
+**Quorum** is an adversarial, calibrated CVE triage system built for the **169Pi Track** at Hacktoberfest Hack Day Hamirpur × GDG Ludhiana.
 
-### How to Contribute
+Instead of trusting a model’s self-reported confidence, Quorum forces three AI personas (Proposer, Red Team, Referee) to argue over deterministic facts extracted from a codebase. Confidence is measured by agreement across multiple seeded runs.
 
-#### Reporting Issues
-If you encounter any bugs, have feature requests, or face deployment challenges:
+### Dual Backend Support
+- **Primary:** Local Gemma models via Ollama (fully offline)
+- **Secondary:** 169Pi Playground API using **Alpie-Core**
 
-1. **Check existing issues** to avoid duplicates
-2. **Open a new issue** with a clear title and description
-3. **Include the following information**:
-   - Environment details (GPU, OS, Python version)
-   - Steps to reproduce the issue
-   - Expected vs. actual behavior
-   - Error messages or logs (if applicable)
-   - Code snippets demonstrating the issue
+The system can automatically fall back to Alpie-Core when local inference is unavailable, or be pinned to Alpie-Core entirely.
 
-####  Submitting Pull Requests
-
-We follow a standard GitHub workflow for contributions:
-
-1. **Fork the repository** to your GitHub account
-2. **Clone your fork** locally:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/Alpie-Core.git
-   cd Alpie-Core
-   ```
-
-3. **Create a new branch** for your feature or fix:
-   ```bash
-   git checkout -b feature/your-feature-name
-   # or
-   git checkout -b fix/issue-description
-   ```
-
-4. **Make your changes**:
-   - Write clean, documented code
-   - Follow existing code style and conventions
-   - Add comments where necessary
-   - Update documentation if needed
-
-5. **Test your changes** thoroughly:
-   - Ensure existing functionality isn't broken
-   - Add tests for new features when applicable
-   - Verify on your hardware setup
-
-6. **Commit your changes** with clear, descriptive messages:
-   ```bash
-   git add .
-   git commit -m "Add: Brief description of your changes"
-   ```
-
-7. **Push to your fork**:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-8. **Open a Pull Request**:
-   - Go to the original repository
-   - Click "New Pull Request"
-   - Select your fork and branch
-   - Provide a clear description of your changes
-   - Reference any related issues (e.g., "Fixes #123")
-
-#### Contribution Guidelines
-
-- **Code Quality**: Follow PEP 8 for Python code
-- **Documentation**: Update README or docs for any user-facing changes
-- **Commit Messages**: Use clear, descriptive commit messages
-- **Testing**: Test your changes before submitting
-- **Scope**: Keep PRs focused on a single feature or fix
-- **Communication**: Be responsive to feedback and questions
-
-#### 🎯 Areas Where We Need Help
-
-- **Performance Optimization**: Improving inference speed and memory efficiency
-- **Documentation**: Tutorials, examples, and use case guides
-- **Testing**: Expanding test coverage and benchmark evaluations
-- **Deployment**: Support for additional inference engines and platforms
-- **Bug Fixes**: Addressing issues reported by the community
-- **Examples**: Real-world application examples and notebooks
-
-#### 🌟 Recognition
-
-Contributors will be acknowledged in our:
-- README Contributors section
-- Release notes
-- Technical reports (for significant contributions)
-
-### Code of Conduct
-
-We are committed to providing a welcoming and inclusive environment. Please:
-- Be respectful and constructive in all interactions
-- Focus on what is best for the community
-- Show empathy towards other community members
-- Accept constructive criticism gracefully
-
-### Questions?
-
-If you have questions about contributing, feel free to:
-- Open a discussion in the Issues tab
-- Reach out to us at **contact@169pi.com**
-- Connect with us on [LinkedIn](https://www.linkedin.com/company/169pi/) or [X](https://x.com/169Pi_ai)
+🔗 **Repository:** [Team-transformer/quorum-cve-triage](https://github.com/Team-transformer/quorum-cve-triage)
 
 ---
 
-**Thank you for helping make Alpie-Core better!**
+## 🎨 Community Entry
+
+### @manuJL — Quorum: Adversarial CVE Triage with Alpie-Core
+
+Quorum uses Alpie-Core (via the 169Pi Playground API) as a high-reasoning backend for claim extraction and refereeing, while keeping tool-calling local when needed. It demonstrates how Alpie-Core can power serious, evidence-driven security workflows — not just chat.
+
+*What it represents:* Using Alpie-Core’s reasoning strength inside an adversarial multi-agent system for real-world vulnerability triage.
+
+**Contributed by [@manuJL](https://github.com/manuJL)**  
+**Team:** Team Transformer
+
+---
+
+## 🔗 Links
+
+- **Main Alpie-Core Repo:** [169Pi/Alpie-Core](https://github.com/169Pi/Alpie-Core)
+- **Our Project:** [Quorum – CVE Triage](https://github.com/Team-transformer/quorum-cve-triage)
+- **Website:** [169pi.ai](https://169pi.ai)
+- **Hugging Face:** [169Pi on Hugging Face](https://huggingface.co/169Pi)
+
+---
+
+Built with respect for open reasoning models.  
+— **Team Transformer**
